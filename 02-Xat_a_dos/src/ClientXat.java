@@ -1,27 +1,23 @@
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.PrintWriter;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.net.InetAddress;
 import java.net.Socket;
-import java.util.Scanner;
-import java.util.stream.Stream;
 
 public class ClientXat {
     
     private Socket socket;
-    private OutputStream sortida;
-    private InputStream entrada;
+    private ObjectOutputStream sortida;
+    private ObjectInputStream entrada;
 
     public void connecta(){
         try {
             
             InetAddress adreca = InetAddress.getByName(ServidorXat.HOST);
             socket = new Socket(adreca, ServidorXat.PORT);
-            sortida = socket.getOutputStream();
-            entrada = socket.getInputStream();
+            sortida = new ObjectOutputStream(socket.getOutputStream());
+            sortida.flush();
+            entrada = new ObjectInputStream(socket.getInputStream());
 
             
         } catch (IOException e) {
@@ -30,9 +26,11 @@ public class ClientXat {
     }
 
     public void enviaMissatge(String missatge){
-         
-        PrintWriter out = new PrintWriter(sortida);
-        out.println(missatge);
+        try {
+            sortida.writeObject(missatge);
+            sortida.flush();
+        } catch (Exception e) {}
+        
     }
 
     public void tancarClient(){
@@ -49,15 +47,23 @@ public class ClientXat {
 
         ClientXat client = new ClientXat();
         client.connecta();
-        FilLectorCX fil = new FilLectorCX("Client", client.sortida);
-        fil.start();
-        Scanner scanner = new Scanner(System.in);
-        String linia;
-        while ((linia = scanner.nextLine()) != null){
-            client.enviaMissatge(linia);
+
+        try {
+            FilLectorCX fil = new FilLectorCX("Client", client.sortida);
+            fil.start();
+        } catch (Exception e) {}
+        
+        try {
+            String missatge;
+            while ((missatge = (String) client.entrada.readObject()) != null) {
+                System.out.println("Missatge ('sortir' per tancar): Rebut: " + missatge);
+            }
+        } catch (Exception e) {
+            System.out.println("El servidor ha tancat la connexió.");
         }
-        scanner.close();
+ 
         client.tancarClient();
+
         
 
     }

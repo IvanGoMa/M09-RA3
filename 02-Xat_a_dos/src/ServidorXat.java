@@ -1,20 +1,17 @@
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Scanner;
-import java.util.stream.Stream;
 import java.io.InputStream;
 
 public class ServidorXat{
     public final static int PORT = 9999;
     public final static String HOST = "localhost";
-    private final String MSG_SORTIR = "sortir";
+    public final static String MSG_SORTIR = "sortir";
     private ServerSocket serverSocket;
 
     public void iniciarServidor(){
@@ -41,41 +38,40 @@ public class ServidorXat{
         }
     }
 
-    public String getNom(InputStream input, OutputStream output){
-        PrintWriter out =  new PrintWriter(output,true);
-        out.println("Escriu el teu nom");
-        String nom;
+    public String getNom(InputStream input, ObjectOutputStream output){
+        String nom = null;
         try {
+            output.writeObject("Escriu el teu nom");
             nom = new BufferedReader(new InputStreamReader(input)).readLine();
-        } catch (Exception e) {
-            // TODO: handle exception
-        } finally {
-            return nom;
-        }
+        } catch (Exception e) {}
+        return nom;
         
     }
 
     public static void main(String[] args) {
         ServidorXat srv = new ServidorXat();
         srv.iniciarServidor();
+
         try {
             Socket clientSocket = srv.serverSocket.accept();
-            InputStream entrada = clientSocket.getInputStream();
-            OutputStream sortida = clientSocket.getOutputStream();
-            FilServidorXat fil = new FilServidorXat("hola",entrada);
+            ObjectOutputStream sortida = new ObjectOutputStream(clientSocket.getOutputStream());
+            sortida.flush();
+            ObjectInputStream entrada = new ObjectInputStream(clientSocket.getInputStream());
+            String nom = srv.getNom(entrada, sortida);
+            FilServidorXat fil = new FilServidorXat(nom,entrada);
             
             Scanner scanner = new Scanner(System.in);
             String linia;
-            PrintWriter out = new PrintWriter(sortida);
             while ((linia = scanner.nextLine()) != null){
-                out.println(linia);
+                sortida.writeObject(linia);
+                sortida.flush();
+                if (linia.equals(ServidorXat.MSG_SORTIR)) break;
             }
+            scanner.close();
             fil.join();
             clientSocket.close();
 
-        } catch (Exception e) {
-            // TODO: handle exception
-        }
+        } catch (Exception e) {}
         
 
     }
