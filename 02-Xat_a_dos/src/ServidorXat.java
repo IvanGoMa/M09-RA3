@@ -1,12 +1,9 @@
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Scanner;
-import java.io.InputStream;
 
 public class ServidorXat{
     public final static int PORT = 9999;
@@ -18,8 +15,7 @@ public class ServidorXat{
         try {
             
             serverSocket = new ServerSocket(PORT);
-            System.out.printf("Servidor en marxa a %s:%d%n", HOST, PORT );
-            System.out.printf("Esperant connexions a %s:%d%n", HOST, PORT );
+            System.out.printf("Servidor iniciat a %s:%d%n", HOST, PORT );
             
         } catch (IOException e) {
             System.err.println("Error al connectar: " + e.getMessage());
@@ -38,11 +34,12 @@ public class ServidorXat{
         }
     }
 
-    public String getNom(InputStream input, ObjectOutputStream output){
+    public String getNom(ObjectInputStream input, ObjectOutputStream output){
         String nom = null;
         try {
             output.writeObject("Escriu el teu nom");
-            nom = new BufferedReader(new InputStreamReader(input)).readLine();
+            nom = (String) input.readObject();
+            System.out.println("Nom rebut: " + nom);
         } catch (Exception e) {}
         return nom;
         
@@ -54,11 +51,16 @@ public class ServidorXat{
 
         try {
             Socket clientSocket = srv.serverSocket.accept();
+            System.out.println("Client connectat: " + clientSocket.getInetAddress());
             ObjectOutputStream sortida = new ObjectOutputStream(clientSocket.getOutputStream());
             sortida.flush();
             ObjectInputStream entrada = new ObjectInputStream(clientSocket.getInputStream());
+
             String nom = srv.getNom(entrada, sortida);
             FilServidorXat fil = new FilServidorXat(nom,entrada);
+            System.out.println("Fil de xat creat");
+            fil.start();
+            System.out.printf("Fil de %s iniciat%n", fil.getName());
             
             Scanner scanner = new Scanner(System.in);
             String linia;
@@ -69,7 +71,10 @@ public class ServidorXat{
             }
             scanner.close();
             fil.join();
+            System.out.println("Fil de xat finalitzat");
             clientSocket.close();
+            srv.pararServidor();
+            System.out.println("Servidor aturat.");
 
         } catch (Exception e) {}
         

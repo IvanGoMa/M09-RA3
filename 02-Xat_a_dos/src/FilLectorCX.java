@@ -1,36 +1,28 @@
-
-import java.io.IOException;
-import java.io.ObjectOutputStream;
-import java.util.Scanner;
+import java.io.ObjectInputStream;
 
 
 public class FilLectorCX extends Thread{
 
-    private ObjectOutputStream output;
+    private ObjectInputStream input;
 
-    public FilLectorCX(String nom, ObjectOutputStream output){
+    public FilLectorCX(String nom, ObjectInputStream input){
         super(nom);
-        this.output = output;
+        this.input = input;
 
     }
 
     @Override
     public void run(){
 
-        Scanner scanner = new Scanner(System.in);
         try {
-            while (scanner.hasNextLine()) {
-                String linia = scanner.nextLine();
-                output.writeObject(linia);
-                output.flush();
-                System.out.println("Enviant missatge: " + linia);
-                if (linia.equals(ServidorXat.MSG_SORTIR)) break;
+            String missatge;
+            while ((missatge = (String) input.readObject()) != null) {
+                System.out.println("Missatge ('sortir' per tancar): Rebut: " + missatge);
             }
-        } catch (IOException e) {
-            System.out.println("Error enviant missatge: " + e.getMessage());
-        } finally {
-            scanner.close();
+        } catch (Exception e) {
+            System.out.println("El servidor ha tancat la connexió.");
         }
+
 
     }
     
